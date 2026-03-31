@@ -1,0 +1,35 @@
+---
+description: Core layout, simplicity, Claude model usage, and config/secrets expectations
+alwaysApply: true
+---
+
+# Project core (race-director)
+
+## Layout
+
+- Put application code under `src/<package_name>/` (e.g. `race_director`). Avoid dumping modules at repo root.
+- Put tests under `tests/` mirroring the package layout, **or** colocate `test_*.py`—pick one convention and keep it.
+- Optional: `config/` or a root-level `config.example.yaml` (or similar); document the real config path in README.
+- Do not add one-off scripts at repo root without a clear reason; prefer `src/...` entrypoints or a small `scripts/` folder.
+
+## Simplicity and maintenance
+
+- Prefer obvious names, small modules, and shallow control flow over clever abstractions.
+- Keep public APIs small and typed at boundaries; hide implementation details in private modules.
+- When behavior or required parameters change, update README and any committed config example in the same change.
+
+## Configuration (high level)
+
+- Required runtime parameters must have a **single obvious source** (file + optional env overrides, or env-only with a committed example). See `.cursor/rules/configuration.mdc` when editing config files.
+- Never commit secrets; use `.env` or local files that are gitignored (see repo `.gitignore`).
+- Validate configuration at startup with clear, actionable errors.
+
+## Claude Opus vs Sonnet (Cursor)
+
+- **Sonnet**: Default for routine work—localized edits, bugfixes, tests, and following existing patterns. Keep diffs small and consistent with surrounding code.
+- **Opus**: Use for ambiguous requirements, new subsystem boundaries, or cross-cutting refactors. Produce a short plan before large or multi-file changes.
+- **Both**: Explicit module boundaries, type hints at package edges, and docs that match actual usage reduce rework across models.
+
+## Workspace rules
+
+- Honor any existing Cursor workspace rules (e.g. commit message trailers required by the project).
