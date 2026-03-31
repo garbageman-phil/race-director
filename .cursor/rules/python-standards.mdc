@@ -1,0 +1,40 @@
+---
+description: Python style, typing, structure, and testing for this project
+globs:
+  - "**/*.py"
+alwaysApply: false
+---
+
+# Python standards
+
+## Versions and typing
+
+- Target a modern Python (3.10+ unless the project pins otherwise). Use built-in generics (`list[str]`, `dict[str, Any]`) instead of `typing.List` where applicable.
+- Add type hints to public functions, methods, and module-level constants that form an API. Prefer `pathlib.Path` over string paths for filesystem work.
+
+## Structure and style
+
+- Prefer small modules with one clear responsibility. Use explicit names; avoid abbreviations unless universally understood.
+- Order imports: stdlib, third party, local; one blank line between groups. No wildcard imports for application code.
+- Prefer `dataclasses` or small structured types (e.g. Pydantic) when passing configuration or structured data across layers—avoid untyped dict soup at boundaries.
+
+## Errors
+
+```python
+# BAD: silent failure
+try:
+    run_job()
+except Exception:
+    pass
+
+# GOOD: preserve context, re-raise or handle deliberately
+try:
+    run_job()
+except OSError as e:
+    raise RuntimeError(f"job failed for {path}") from e
+```
+
+## Tests
+
+- Use `pytest`-friendly layout and naming (`test_*.py`, `test_*` functions). One behavior per test when practical; clear assertion messages.
+- When the project adds `ruff`, `mypy`, or `pytest` config, follow those tools’ settings; do not fight the repo’s chosen linters/formatters.

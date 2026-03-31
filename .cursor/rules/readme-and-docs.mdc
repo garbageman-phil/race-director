@@ -1,0 +1,26 @@
+---
+description: README must include user guide, quickstart, and operational usage
+globs:
+  - "README.md"
+alwaysApply: false
+---
+
+# README requirements
+
+When editing `README.md`, keep it easy for a new operator to run the tool. Include the sections below (headings can vary; content must be present).
+
+## Required sections
+
+1. **Overview** — One short paragraph: what the project does and who it is for.
+2. **Prerequisites** — Python version, OS notes if relevant, any system dependencies.
+3. **Installation** — Create venv, install dependencies (commands must match however the project is packaged: `pip install -e .`, `uv sync`, etc.).
+4. **Configuration** — Where settings live (file path and/or env vars), how to copy from the committed example (`config.example.yaml`, `.env.example`, etc.), and list required keys or variables.
+5. **Usage / operations** — Copy-pasteable examples for day-to-day tasks (CLI entrypoint, `python -m ...`, or API usage).
+6. **Quickstart** — Shortest path from clone to first successful run (numbered steps).
+
+## Optional but useful
+
+- Troubleshooting (common errors, where logs go).
+- Link or pointer to license if not obvious.
+
+Do not leave install or run steps as vague placeholders once the project defines real commands—update README to match.

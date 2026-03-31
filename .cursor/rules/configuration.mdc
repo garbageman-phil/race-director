@@ -1,0 +1,37 @@
+---
+description: Single source of truth for required parameters; examples and validation
+globs:
+  - "**/config*.yaml"
+  - "**/config*.yml"
+  - "**/.env.example"
+  - "config.example.*"
+  - ".env.example"
+  - "pyproject.toml"
+alwaysApply: false
+---
+
+# Configuration conventions
+
+## Single source of truth
+
+- Required parameters must be loaded from one clear mechanism: a committed **example** file plus a user-local copy or env vars—**or** env-only with `.env.example` documenting every variable.
+- Avoid scattering `os.environ.get` calls across the codebase; centralize load/validate (e.g. one module or small settings object).
+
+## Committed examples
+
+- Check in `config.example.yaml`, `.env.example`, or equivalent with **all** required keys and placeholder values. Document optional keys and defaults in comments or README.
+- Never commit real secrets, API keys, or production URLs. Rely on `.env` and gitignored paths (see repo `.gitignore`).
+
+## Validation
+
+- Fail fast at startup if required values are missing or invalid. Error messages should name the key and what was wrong.
+
+```yaml
+# Example shape (adjust to project)
+api_base_url: "https://example.invalid"
+timeout_seconds: 30
+```
+
+## pyproject.toml
+
+- When editing `pyproject.toml`, keep project metadata and dependency sections accurate; do not duplicate configuration that belongs in YAML/env unless the tool requires it (e.g. tool-specific tables).
