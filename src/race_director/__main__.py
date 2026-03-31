@@ -2,15 +2,29 @@
 
 from __future__ import annotations
 
+import argparse
 import sys
 
-from tabulate import tabulate
-
 from race_director.config import load_config
+from race_director.formatter import format_results
 from race_director.scraper import scrape_race
 
 
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Scrape ontheday.net race results filtered by team name."
+    )
+    parser.add_argument(
+        "--plain",
+        action="store_true",
+        default=False,
+        help="Output results as a plain-text table instead of the default Markdown.",
+    )
+    return parser.parse_args()
+
+
 def main() -> None:
+    args = _parse_args()
     config = load_config()
     team_lower = config.team_names_lower()
 
@@ -36,24 +50,8 @@ def main() -> None:
         print("No results found for the configured team names.")
         raise SystemExit(0)
 
-    rows = [
-        [
-            f"{r.stage_name} ({r.category_name})" if r.stage_name else r.category_name,
-            r.rider_name,
-            r.place,
-        ]
-        for r in results
-    ]
-
     print()
-    print(
-        tabulate(
-            rows,
-            headers=["Race Name", "Rider Name", "Rider Place"],
-            tablefmt="simple",
-        )
-    )
-    print(f"\n{len(results)} result(s) found.")
+    print(format_results(results, markdown=not args.plain))
 
 
 if __name__ == "__main__":
