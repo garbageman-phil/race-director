@@ -1,5 +1,7 @@
 # race-director
 
+As a race director for a cycling team, it may be important to you to collect all your team member's race results given that there may be a lot of team racers participating in many events over a weekend.  This app strives to collect all the information and present it in a markdown or plain text table.
+
 A Python CLI tool that scrapes cycling race results from [ontheday.net](https://www.ontheday.net) and filters them by team name. Point it at any race event — multi-stage or single-day — and get a clean table of your team's finishes across every category.
 
 ## Prerequisites
@@ -11,6 +13,7 @@ A Python CLI tool that scrapes cycling race results from [ontheday.net](https://
 
 ```bash
 git clone <repo-url> && cd race-director
+git pull # to get all the latest updates
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e .
