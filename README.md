@@ -38,7 +38,11 @@ The file is gitignored. See `config.example.yaml` for the committed template.
 ## Usage
 
 ```bash
+# Default: Markdown table (GitHub-Flavored Markdown, ready to paste into a PR or doc)
 python -m race_director
+
+# Plain-text table
+python -m race_director --plain
 ```
 
 The tool will display your configured team names and prompt for a race path:
@@ -49,7 +53,20 @@ Enter race path (e.g. 2026/murrieta): 2026/murrieta
 
 The race path corresponds to the URL on ontheday.net — for `https://www.ontheday.net/2026/murrieta/`, enter `2026/murrieta`. Both multi-stage events and single-day races (e.g. `2026/cbr_2`) are supported.
 
-Output is a table of all your team's results across every stage and category:
+Default output is a GitHub-Flavored Markdown table, ready to paste into a PR or doc:
+
+```markdown
+## Race Results
+
+| Race Name                                    | Rider Name  | Rider Place |
+|----------------------------------------------|-------------|-------------|
+| Stage 1 - Grand Prix (Open 2/3)              | Xinsong Lin | 29th        |
+| Stage 2 - Circuit Race (Open 4/5)            | Aj Iracheta | 4th         |
+
+**2 result(s) found.**
+```
+
+With `--plain`, output is a plain-text table:
 
 ```
 Race Name                                     Rider Name        Rider Place
