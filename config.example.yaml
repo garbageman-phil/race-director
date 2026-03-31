@@ -1,0 +1,7 @@
+# Team name variants to search for in race results.
+# Matching is case-insensitive. Add as many variants as needed
+# to catch different spellings the timing company may use.
+team_names:
+  - "SDBC"
+  - "San Diego Bicycle Club powered by Bonnici Law Group"
+  - "San Diego Bicycle Club"

@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68.0", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "race-director"
+version = "0.1.0"
+description = "Scrape ontheday.net race results for your cycling team"
+requires-python = ">=3.10"
+dependencies = [
+    "requests>=2.31",
+    "beautifulsoup4>=4.12",
+    "lxml>=5.0",
+    "pyyaml>=6.0",
+    "tabulate>=0.9",
+]
+
+[project.scripts]
+race-director = "race_director.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
