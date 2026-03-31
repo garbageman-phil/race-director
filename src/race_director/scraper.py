@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin
 
 import requests
 from bs4 import BeautifulSoup, Tag
@@ -46,11 +46,10 @@ def _title_case_name(first: str, last: str) -> str:
     return f"{first.strip()} {last.strip()}".title()
 
 
-def discover_stages(race_path: str) -> list[tuple[str, str]]:
-    """Return (stage_display_name, stage_url) pairs for a race event."""
-    url = f"{BASE_URL}/{race_path.strip('/')}/"
-    soup = _get(url)
-
+def _discover_stages(
+    soup: BeautifulSoup, base_url: str
+) -> list[tuple[str, str]]:
+    """Return (stage_display_name, stage_url) pairs from a race event page."""
     stages: list[tuple[str, str]] = []
     seen_urls: set[str] = set()
 
@@ -60,7 +59,7 @@ def discover_stages(race_path: str) -> list[tuple[str, str]]:
             href = href[0]
         if "@" not in href or "/results" in href:
             continue
-        full_url = urljoin(url, href)
+        full_url = urljoin(base_url, href)
         if full_url in seen_urls:
             continue
         seen_urls.add(full_url)
@@ -70,10 +69,8 @@ def discover_stages(race_path: str) -> list[tuple[str, str]]:
     return stages
 
 
-def _discover_results_urls(stage_url: str) -> list[str]:
-    """Find all full-results page URLs from a stage page."""
-    soup = _get(stage_url)
-
+def _find_results_links(soup: BeautifulSoup, base_url: str) -> list[str]:
+    """Extract deduplicated full-results page URLs from a parsed page."""
     urls: list[str] = []
     seen: set[str] = set()
 
@@ -85,7 +82,7 @@ def _discover_results_urls(stage_url: str) -> list[str]:
         if "full results" not in text:
             continue
         base_href = href.split("#")[0]
-        full_url = urljoin(stage_url, base_href)
+        full_url = urljoin(base_url, base_href)
         if full_url not in seen:
             seen.add(full_url)
             urls.append(full_url)
@@ -192,24 +189,37 @@ def _parse_results_page(
 
 
 def scrape_race(race_path: str, team_names_lower: set[str]) -> list[RaceResult]:
-    """Scrape all results for a race event and return team-filtered results."""
-    stages = discover_stages(race_path)
-    if not stages:
-        raise RuntimeError(
-            f"No stages found at {BASE_URL}/{race_path.strip('/')}/ — "
-            "check that the race path is correct (e.g. '2026/murrieta')."
-        )
+    """Scrape all results for a race event and return team-filtered results.
 
+    Handles both multi-stage events (e.g. Tour de Murrieta) and single-day
+    races (e.g. CBR criteriums) where results links live on the main page.
+    """
+    race_url = f"{BASE_URL}/{race_path.strip('/')}/"
+    race_soup = _get(race_url)
+
+    stages = _discover_stages(race_soup, race_url)
     all_results: list[RaceResult] = []
 
-    for stage_name, stage_url in stages:
-        print(f"  Scanning {stage_name}...")
-        results_urls = _discover_results_urls(stage_url)
-
-        for results_url in results_urls:
-            page_results = _parse_results_page(
-                results_url, stage_name, team_names_lower
+    if stages:
+        for stage_name, stage_url in stages:
+            print(f"  Scanning {stage_name}...")
+            stage_soup = _get(stage_url)
+            results_urls = _find_results_links(stage_soup, stage_url)
+            for results_url in results_urls:
+                all_results.extend(
+                    _parse_results_page(results_url, stage_name, team_names_lower)
+                )
+    else:
+        results_urls = _find_results_links(race_soup, race_url)
+        if not results_urls:
+            raise RuntimeError(
+                f"No stages or results found at {race_url} — "
+                "check that the race path is correct (e.g. '2026/murrieta')."
             )
-            all_results.extend(page_results)
+        print("  Single-day race — scanning results...")
+        for results_url in results_urls:
+            all_results.extend(
+                _parse_results_page(results_url, "", team_names_lower)
+            )
 
     return all_results

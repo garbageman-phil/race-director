@@ -1,6 +1,6 @@
 # race-director
 
-A Python CLI tool that scrapes cycling race results from [ontheday.net](https://www.ontheday.net) and filters them by team name. Point it at any race event and get a clean table of your team's finishes across every stage and category.
+A Python CLI tool that scrapes cycling race results from [ontheday.net](https://www.ontheday.net) and filters them by team name. Point it at any race event — multi-stage or single-day — and get a clean table of your team's finishes across every category.
 
 ## Prerequisites
 
@@ -47,7 +47,7 @@ The tool will display your configured team names and prompt for a race path:
 Enter race path (e.g. 2026/murrieta): 2026/murrieta
 ```
 
-The race path corresponds to the URL on ontheday.net — for `https://www.ontheday.net/2026/murrieta/`, enter `2026/murrieta`.
+The race path corresponds to the URL on ontheday.net — for `https://www.ontheday.net/2026/murrieta/`, enter `2026/murrieta`. Both multi-stage events and single-day races (e.g. `2026/cbr_2`) are supported.
 
 Output is a table of all your team's results across every stage and category:
 
@@ -57,6 +57,16 @@ Race Name                                     Rider Name        Rider Place
 Stage 1 - Grand Prix (Open 2/3)               Xinsong Lin       29th
 Stage 1 - Grand Prix (Masters 45+ 1/2/3/4)    Tim Guy           15th
 Stage 2 - Circuit Race (Open 4/5)             Aj Iracheta       4th
+...
+```
+
+For single-day races the Race Name column shows just the category:
+
+```
+Race Name              Rider Name        Rider Place
+---------------------  ----------------  -------------
+Masters 50+ (Cat 1-4)  David Morrison    7th
+Masters 40+ (Cat 1-3)  Tim Guy           19th
 ...
 ```
 

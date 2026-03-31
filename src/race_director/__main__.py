@@ -38,7 +38,7 @@ def main() -> None:
 
     rows = [
         [
-            f"{r.stage_name} ({r.category_name})",
+            f"{r.stage_name} ({r.category_name})" if r.stage_name else r.category_name,
             r.rider_name,
             r.place,
         ]
