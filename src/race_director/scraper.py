@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from urllib.parse import urljoin
 
 import requests
@@ -19,6 +19,31 @@ class RaceResult:
     category_name: str
     rider_name: str
     place: str  # ordinal like "1st" or "DNP"
+
+
+@dataclass
+class PrimeResult:
+    stage_name: str
+    category_name: str
+    prime_label: str
+    rider_name: str
+    points: str
+
+
+@dataclass
+class MarResult:
+    stage_name: str
+    category_name: str
+    place: str
+    rider_name: str
+    points: str
+
+
+@dataclass
+class ScrapeOutcome:
+    finish: list[RaceResult] = field(default_factory=list)
+    primes: list[PrimeResult] = field(default_factory=list)
+    mar: list[MarResult] = field(default_factory=list)
 
 
 def _get(url: str) -> BeautifulSoup:
@@ -44,6 +69,10 @@ def _extract_stage_name(link_text: str) -> str:
 
 def _title_case_name(first: str, last: str) -> str:
     return f"{first.strip()} {last.strip()}".title()
+
+
+def _normalize_whitespace(text: str) -> str:
+    return re.sub(r"[\xa0\s]+", " ", text).strip()
 
 
 def _discover_stages(
@@ -98,14 +127,47 @@ def _is_results_table(table: Tag) -> bool:
     return False
 
 
-def _find_category_for_table(table: Tag) -> str | None:
-    """Walk backwards from a table to find its category heading.
+def _is_primes_table(table: Tag) -> bool:
+    first_th = table.find("th")
+    if first_th:
+        return first_th.get_text(strip=True).lower() == "prime"
+    return False
 
-    Returns the most specific heading (h4 beats h3).  Skips headings
-    that indicate non-results sections (primes, classification, finish order).
+
+def _nearest_section_heading(table: Tag) -> tuple[str, str] | None:
+    """Return (tag_name, heading text) for nearest preceding h3 or h4."""
+    for sibling in table.previous_elements:
+        if not isinstance(sibling, Tag):
+            continue
+        if sibling.name in ("h3", "h4"):
+            return sibling.name, sibling.get_text(" ", strip=True)
+    return None
+
+
+def _is_mar_table(table: Tag) -> bool:
+    """MAR tables use Place columns but sit under a Most Assertive Rider heading."""
+    if not _is_results_table(table):
+        return False
+    heading = _nearest_section_heading(table)
+    if not heading:
+        return False
+    _, text = heading
+    if re.match(r"Results:\s*", text, re.I):
+        return False
+    return bool(re.search(r"most assertive rider|\(mar\)", text, re.I))
+
+
+def _find_category_for_finish_table(table: Tag) -> str | None:
+    """Walk backwards from a table to find its category heading for finish results.
+
+    Skips primes/classification sections and MAR / team standings headings.
     """
     skip_patterns = re.compile(
         r"(prime|classification|finish order|omnium|compiled|stage results)",
+        re.IGNORECASE,
+    )
+    section_skip = re.compile(
+        r"(most assertive rider|\(mar\)|^teams\b)",
         re.IGNORECASE,
     )
 
@@ -116,79 +178,240 @@ def _find_category_for_table(table: Tag) -> str | None:
             heading_text = sibling.get_text(" ", strip=True)
             if skip_patterns.search(heading_text):
                 return None
+            if section_skip.search(heading_text):
+                return None
             heading_text = re.sub(r"^Results:\s*", "", heading_text).strip()
             return heading_text
     return None
+
+
+def _find_results_h3_category(table: Tag) -> str | None:
+    """Category label from the main 'Results: …' h3 above this section."""
+    for sibling in table.previous_elements:
+        if not isinstance(sibling, Tag):
+            continue
+        if sibling.name == "h3":
+            heading_text = sibling.get_text(" ", strip=True)
+            if re.match(r"Results:\s*", heading_text, re.I):
+                return re.sub(r"^Results:\s*", "", heading_text).strip()
+    return None
+
+
+def _find_mar_category_label(table: Tag) -> str | None:
+    """Heading text for a MAR table (h4 under the MAR section)."""
+    for sibling in table.previous_elements:
+        if not isinstance(sibling, Tag):
+            continue
+        if sibling.name in ("h4", "h3"):
+            text = sibling.get_text(" ", strip=True)
+            if re.search(r"most assertive rider|\(mar\)", text, re.I):
+                return text.strip()
+    return None
+
+
+def _team_column_index(headers: list[str]) -> int | None:
+    for candidate in ("team", "team name"):
+        if candidate in headers:
+            return headers.index(candidate)
+    return None
+
+
+def _parse_finish_table(
+    table: Tag,
+    stage_name: str,
+    team_names_lower: set[str],
+) -> list[RaceResult]:
+    category = _find_category_for_finish_table(table)
+    if category is None:
+        return []
+
+    headers = [th.get_text(strip=True).lower() for th in table.find_all("th")]
+    try:
+        place_idx = headers.index("place")
+        first_idx = headers.index("first")
+        last_idx = headers.index("last")
+    except ValueError:
+        return []
+
+    team_idx = _team_column_index(headers)
+    if team_idx is None:
+        return []
+
+    matches: list[RaceResult] = []
+    for row in table.find_all("tr"):
+        cells = row.find_all("td")
+        if len(cells) <= max(place_idx, first_idx, last_idx, team_idx):
+            continue
+
+        team_text = cells[team_idx].get_text(" ", strip=True)
+        if team_text.lower() not in team_names_lower:
+            continue
+
+        place_text = cells[place_idx].get_text(strip=True)
+        first_name = cells[first_idx].get_text(strip=True)
+        last_name = cells[last_idx].get_text(strip=True)
+
+        if not first_name or not last_name:
+            continue
+
+        if place_text.isdigit():
+            place_display = _ordinal(int(place_text))
+        else:
+            place_display = place_text.upper()
+
+        matches.append(
+            RaceResult(
+                stage_name=stage_name,
+                category_name=category,
+                rider_name=_title_case_name(first_name, last_name),
+                place=place_display,
+            )
+        )
+
+    return matches
+
+
+def _parse_primes_table(
+    table: Tag,
+    stage_name: str,
+    team_names_lower: set[str],
+) -> list[PrimeResult]:
+    category = _find_results_h3_category(table) or ""
+    headers = [th.get_text(strip=True).lower() for th in table.find_all("th")]
+    try:
+        prime_idx = headers.index("prime")
+        first_idx = headers.index("first")
+        last_idx = headers.index("last")
+    except ValueError:
+        return []
+
+    team_idx = _team_column_index(headers)
+    if team_idx is None:
+        return []
+
+    points_idx = headers.index("points") if "points" in headers else None
+
+    matches: list[PrimeResult] = []
+    for row in table.find_all("tr"):
+        cells = row.find_all("td")
+        if not cells:
+            continue
+        if len(cells) <= max(prime_idx, first_idx, last_idx, team_idx):
+            continue
+
+        prime_label = cells[prime_idx].get_text(" ", strip=True)
+        if not prime_label or re.search(r"prime count", prime_label, re.I):
+            continue
+        if re.search(r"primes do not contribute", prime_label, re.I):
+            continue
+
+        team_text = cells[team_idx].get_text(" ", strip=True)
+        if team_text.lower() not in team_names_lower:
+            continue
+
+        first_name = cells[first_idx].get_text(strip=True)
+        last_name = cells[last_idx].get_text(strip=True)
+        if not first_name or not last_name:
+            continue
+
+        points = ""
+        if points_idx is not None and len(cells) > points_idx:
+            points = cells[points_idx].get_text(strip=True)
+
+        matches.append(
+            PrimeResult(
+                stage_name=stage_name,
+                category_name=category,
+                prime_label=prime_label,
+                rider_name=_title_case_name(first_name, last_name),
+                points=points,
+            )
+        )
+
+    return matches
+
+
+def _parse_mar_table(
+    table: Tag,
+    stage_name: str,
+    team_names_lower: set[str],
+) -> list[MarResult]:
+    category = _find_mar_category_label(table) or ""
+    headers = [th.get_text(strip=True).lower() for th in table.find_all("th")]
+    try:
+        place_idx = headers.index("place")
+        first_idx = headers.index("first")
+        last_idx = headers.index("last")
+    except ValueError:
+        return []
+
+    team_idx = _team_column_index(headers)
+    if team_idx is None:
+        return []
+
+    points_idx = headers.index("points") if "points" in headers else None
+
+    matches: list[MarResult] = []
+    for row in table.find_all("tr"):
+        cells = row.find_all("td")
+        if len(cells) <= max(place_idx, first_idx, last_idx, team_idx):
+            continue
+
+        first_name = cells[first_idx].get_text(strip=True)
+        last_name = cells[last_idx].get_text(strip=True)
+        if not first_name or not last_name:
+            continue
+
+        team_text = cells[team_idx].get_text(" ", strip=True)
+        if team_text.lower() not in team_names_lower:
+            continue
+
+        place_text = _normalize_whitespace(cells[place_idx].get_text(" ", strip=True))
+        if not place_text or place_text.startswith("»") or "lap" in place_text.lower():
+            continue
+
+        points = ""
+        if points_idx is not None and len(cells) > points_idx:
+            points = _normalize_whitespace(cells[points_idx].get_text(strip=True))
+
+        matches.append(
+            MarResult(
+                stage_name=stage_name,
+                category_name=category,
+                place=place_text,
+                rider_name=_title_case_name(first_name, last_name),
+                points=points,
+            )
+        )
+
+    return matches
 
 
 def _parse_results_page(
     results_url: str,
     stage_name: str,
     team_names_lower: set[str],
-) -> list[RaceResult]:
+) -> ScrapeOutcome:
     """Parse a full-results page and return matching team results."""
     soup = _get(results_url)
-    matches: list[RaceResult] = []
+    outcome = ScrapeOutcome()
 
     for table in soup.find_all("table"):
-        if not _is_results_table(table):
-            continue
-
-        category = _find_category_for_table(table)
-        if category is None:
-            continue
-
-        headers = [th.get_text(strip=True).lower() for th in table.find_all("th")]
-        try:
-            place_idx = headers.index("place")
-            first_idx = headers.index("first")
-            last_idx = headers.index("last")
-        except ValueError:
-            continue
-
-        team_idx: int | None = None
-        for candidate in ("team", "team name"):
-            if candidate in headers:
-                team_idx = headers.index(candidate)
-                break
-
-        if team_idx is None:
-            continue
-
-        for row in table.find_all("tr"):
-            cells = row.find_all("td")
-            if len(cells) <= max(place_idx, first_idx, last_idx, team_idx):
-                continue
-
-            team_text = cells[team_idx].get_text(" ", strip=True)
-            if team_text.lower() not in team_names_lower:
-                continue
-
-            place_text = cells[place_idx].get_text(strip=True)
-            first_name = cells[first_idx].get_text(strip=True)
-            last_name = cells[last_idx].get_text(strip=True)
-
-            if not first_name or not last_name:
-                continue
-
-            if place_text.isdigit():
-                place_display = _ordinal(int(place_text))
-            else:
-                place_display = place_text.upper()
-
-            matches.append(
-                RaceResult(
-                    stage_name=stage_name,
-                    category_name=category,
-                    rider_name=_title_case_name(first_name, last_name),
-                    place=place_display,
-                )
+        if _is_primes_table(table):
+            outcome.primes.extend(
+                _parse_primes_table(table, stage_name, team_names_lower)
+            )
+        elif _is_mar_table(table):
+            outcome.mar.extend(_parse_mar_table(table, stage_name, team_names_lower))
+        elif _is_results_table(table):
+            outcome.finish.extend(
+                _parse_finish_table(table, stage_name, team_names_lower)
             )
 
-    return matches
+    return outcome
 
 
-def scrape_race(race_path: str, team_names_lower: set[str]) -> list[RaceResult]:
+def scrape_race(race_path: str, team_names_lower: set[str]) -> ScrapeOutcome:
     """Scrape all results for a race event and return team-filtered results.
 
     Handles both multi-stage events (e.g. Tour de Murrieta) and single-day
@@ -198,7 +421,7 @@ def scrape_race(race_path: str, team_names_lower: set[str]) -> list[RaceResult]:
     race_soup = _get(race_url)
 
     stages = _discover_stages(race_soup, race_url)
-    all_results: list[RaceResult] = []
+    outcome = ScrapeOutcome()
 
     if stages:
         for stage_name, stage_url in stages:
@@ -206,9 +429,10 @@ def scrape_race(race_path: str, team_names_lower: set[str]) -> list[RaceResult]:
             stage_soup = _get(stage_url)
             results_urls = _find_results_links(stage_soup, stage_url)
             for results_url in results_urls:
-                all_results.extend(
-                    _parse_results_page(results_url, stage_name, team_names_lower)
-                )
+                page = _parse_results_page(results_url, stage_name, team_names_lower)
+                outcome.finish.extend(page.finish)
+                outcome.primes.extend(page.primes)
+                outcome.mar.extend(page.mar)
     else:
         results_urls = _find_results_links(race_soup, race_url)
         if not results_urls:
@@ -218,8 +442,9 @@ def scrape_race(race_path: str, team_names_lower: set[str]) -> list[RaceResult]:
             )
         print("  Single-day race — scanning results...")
         for results_url in results_urls:
-            all_results.extend(
-                _parse_results_page(results_url, "", team_names_lower)
-            )
+            page = _parse_results_page(results_url, "", team_names_lower)
+            outcome.finish.extend(page.finish)
+            outcome.primes.extend(page.primes)
+            outcome.mar.extend(page.mar)
 
-    return all_results
+    return outcome

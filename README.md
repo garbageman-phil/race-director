@@ -2,7 +2,7 @@
 
 As a race director for a cycling team, it may be important to you to collect all your team member's race results given that there may be a lot of team racers participating in many events over a weekend.  This app strives to collect all the information and present it in a markdown or plain text table.
 
-A Python CLI tool that scrapes cycling race results from [ontheday.net](https://www.ontheday.net) and filters them by team name. Point it at any race event — multi-stage or single-day — and get a clean table of your team's finishes across every category.
+A Python CLI tool that scrapes cycling race results from [ontheday.net](https://www.ontheday.net) and filters them by team name. Point it at any race event — multi-stage or single-day — and get a clean table of your team's finishes across every category. When the timing pages include **Primes** or **Most Assertive Rider (MAR)** tables, matching team rows are listed in additional sections after the main finish table (same team-name rules as finishes).
 
 ## Prerequisites
 
@@ -88,6 +88,26 @@ Race Name              Rider Name        Rider Place
 Masters 50+ (Cat 1-4)  David Morrison    7th
 Masters 40+ (Cat 1-3)  Tim Guy           19th
 ...
+```
+
+Primes and MAR use the same `team_names` matching as finishes. Example Markdown output shape:
+
+```markdown
+### Primes
+
+| Race Name             | Rider Name | Prime      | Points |
+|-----------------------|------------|------------|--------|
+| Masters 50+ (Cat 1-4) | Jane Doe   | Men 50+ #1 | 10     |
+
+**1 prime result(s).**
+
+### Most Assertive Rider (MAR)
+
+| Race Name                                        | Rider Name | Place | Points |
+|--------------------------------------------------|------------|-------|--------|
+| Most Assertive Rider (MAR) – Masters 50+ 1/2/3/4 | Jane Doe   | = 2   | 3      |
+
+**1 MAR result(s).**
 ```
 
 ## Quickstart

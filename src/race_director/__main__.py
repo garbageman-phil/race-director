@@ -41,17 +41,17 @@ def main() -> None:
     print(f"\nFetching results from ontheday.net/{race_path}/ ...\n")
 
     try:
-        results = scrape_race(race_path, team_lower)
+        outcome = scrape_race(race_path, team_lower)
     except RuntimeError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         raise SystemExit(1)
 
-    if not results:
+    if not outcome.finish and not outcome.primes and not outcome.mar:
         print("No results found for the configured team names.")
         raise SystemExit(0)
 
     print()
-    print(format_results(results, markdown=not args.plain))
+    print(format_results(outcome, markdown=not args.plain))
 
 
 if __name__ == "__main__":
