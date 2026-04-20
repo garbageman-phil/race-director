@@ -46,9 +46,18 @@ python -m race_director
 
 # Plain-text table
 python -m race_director --plain
+
+# Non-interactive: pass the race path on the command line (no prompt)
+python -m race_director --plain --race-path 2026/murrieta
+
+# Same, but skip printing the configured team names (useful for scripts)
+python -m race_director --plain --race-path 2026/murrieta --quiet
+
+# Use a config file outside the current directory
+python -m race_director --config /path/to/config.yaml --race-path 2026/murrieta
 ```
 
-The tool will display your configured team names and prompt for a race path:
+**Interactive mode:** if you omit `--race-path`, the tool prints your configured team names and prompts for a race path:
 
 ```
 Enter race path (e.g. 2026/murrieta): 2026/murrieta
@@ -128,7 +137,11 @@ Primes and MAR use the same `team_names` matching as finishes. Example Markdown 
    ```bash
    python -m race_director
    ```
-5. Enter a race path when prompted (e.g. `2026/murrieta`).
+5. Enter a race path when prompted (e.g. `2026/murrieta`), or pass `--race-path` for non-interactive runs.
+
+## Discord bot (dougie-bot)
+
+To run **dougie-bot** in a Discord server (e.g. **SDBC Racing Team**), install optional dependencies (`pip install -e ".[discord]"`), set `DISCORD_TOKEN`, and follow [DOUGIE_BOT.md](DOUGIE_BOT.md).
 
 ## License
 
