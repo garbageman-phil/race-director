@@ -72,8 +72,8 @@ Default output is a GitHub-Flavored Markdown table, ready to paste into a PR or 
 
 | Race Name                                    | Rider Name  | Rider Place |
 |----------------------------------------------|-------------|-------------|
-| Stage 1 - Grand Prix (Open 2/3)              | Xinsong Lin | 29th        |
-| Stage 2 - Circuit Race (Open 4/5)            | Aj Iracheta | 4th         |
+| Stage 1 - Grand Prix (Open 2/3)              | Bart | 29th        |
+| Stage 2 - Circuit Race (Open 4/5)            | Lisa | 4th         |
 
 **2 result(s) found.**
 ```
@@ -83,9 +83,9 @@ With `--plain`, output is a plain-text table:
 ```
 Race Name                                     Rider Name        Rider Place
 --------------------------------------------  ----------------  -------------
-Stage 1 - Grand Prix (Open 2/3)               Xinsong Lin       29th
-Stage 1 - Grand Prix (Masters 45+ 1/2/3/4)    Tim Guy           15th
-Stage 2 - Circuit Race (Open 4/5)             Aj Iracheta       4th
+Stage 1 - Grand Prix (Open 2/3)               Bart       29th
+Stage 1 - Grand Prix (Masters 45+ 1/2/3/4)    Homer           15th
+Stage 2 - Circuit Race (Open 4/5)             Marge       4th
 ...
 ```
 
@@ -94,8 +94,8 @@ For single-day races the Race Name column shows just the category:
 ```
 Race Name              Rider Name        Rider Place
 ---------------------  ----------------  -------------
-Masters 50+ (Cat 1-4)  David Morrison    7th
-Masters 40+ (Cat 1-3)  Tim Guy           19th
+Masters 50+ (Cat 1-4)  Mr Burns    7th
+Masters 40+ (Cat 1-3)  Homer           19th
 ...
 ```
 
@@ -106,7 +106,7 @@ Primes and MAR use the same `team_names` matching as finishes. Example Markdown 
 
 | Race Name             | Rider Name | Prime      | Points |
 |-----------------------|------------|------------|--------|
-| Masters 50+ (Cat 1-4) | Jane Doe   | Men 50+ #1 | 10     |
+| Masters 50+ (Cat 1-4) | Lisa   | Men 50+ #1 | 10     |
 
 **1 prime result(s).**
 
@@ -114,7 +114,7 @@ Primes and MAR use the same `team_names` matching as finishes. Example Markdown 
 
 | Race Name                                        | Rider Name | Place | Points |
 |--------------------------------------------------|------------|-------|--------|
-| Most Assertive Rider (MAR) – Masters 50+ 1/2/3/4 | Jane Doe   | = 2   | 3      |
+| Most Assertive Rider (MAR) – Masters 50+ 1/2/3/4 | Lisa   | = 2   | 3      |
 
 **1 MAR result(s).**
 ```
