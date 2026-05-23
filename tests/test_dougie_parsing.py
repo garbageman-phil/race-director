@@ -29,6 +29,7 @@ def test_parse_invocation_not_invoked() -> None:
 
 def test_extract_race_path() -> None:
     assert extract_race_path("results from 2026/cbr_4 thanks") == "2026/cbr_4"
+    assert extract_race_path("results from 2026/eldo-1-8 thanks") == "2026/eldo-1-8"
     assert extract_race_path("no path here") is None
 
 
