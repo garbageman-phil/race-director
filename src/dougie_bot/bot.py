@@ -21,10 +21,11 @@ def _help_text() -> str:
         "**dougie-bot** — race results from ontheday.net (same plain-text tables as "
         "`python -m race_director --plain`).\n\n"
         "**Examples**\n"
-        "- `@dougie-bot what were the race results from 2026/cbr_4?`\n"
+        "- `@dougie-bot what were the race results from 2026/eldo-1-8?`\n"
         "- `dougie-bot, 2026/cbr_4`\n"
         "- `@dougie-bot help`\n\n"
-        "**Race path** must look like `YYYY/event_slug` (e.g. `2026/murrieta`). "
+        "**Race path** must match the ontheday.net URL exactly (e.g. `2026/eldo-1-8` or "
+        "`2026/cbr_4`), including hyphens vs underscores. "
         "It matches the URL `https://www.ontheday.net/YYYY/event_slug/`.\n\n"
         "Results only include riders whose **team** matches `team_names` in your "
         "`config.yaml` on the machine running the bot. See the repo README and "
@@ -68,7 +69,7 @@ def run_bot() -> None:
         race_path = extract_race_path(body)
         if not race_path:
             await message.reply(
-                "I need a race path like `2026/cbr_4` in your message. "
+                "I need a race path like `2026/eldo-1-8` or `2026/cbr_4` in your message. "
                 "Try `@dougie-bot help`."
             )
             return

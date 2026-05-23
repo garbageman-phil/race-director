@@ -12,11 +12,34 @@ from race_director.scraper import (
     _parse_mar_table,
     _parse_primes_table,
     _parse_results_page,
+    _validate_race_page_url,
 )
 
 
 def _fixture(name: str) -> str:
     return (Path(__file__).parent / "fixtures" / name).read_text(encoding="utf-8")
+
+
+class ValidateRacePageUrlTests(unittest.TestCase):
+    def test_accepts_exact_match(self) -> None:
+        _validate_race_page_url(
+            "2026/eldo-1-8",
+            "https://www.ontheday.net/2026/eldo-1-8/",
+        )
+
+    def test_accepts_subpath(self) -> None:
+        _validate_race_page_url(
+            "2026/gsrs",
+            "https://www.ontheday.net/2026/gsrs/classification/",
+        )
+
+    def test_rejects_homepage_redirect(self) -> None:
+        with self.assertRaises(RuntimeError) as ctx:
+            _validate_race_page_url(
+                "2026/eldo_1_8",
+                "https://www.ontheday.net/",
+            )
+        self.assertIn("redirected away", str(ctx.exception))
 
 
 class ParseFinishTableTests(unittest.TestCase):

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 import requests
 from bs4 import BeautifulSoup, Tag
@@ -46,9 +46,25 @@ class ScrapeOutcome:
     mar: list[MarResult] = field(default_factory=list)
 
 
-def _get(url: str) -> BeautifulSoup:
+def _validate_race_page_url(race_path: str, final_url: str) -> None:
+    """Ensure ontheday.net did not redirect away from the requested race path."""
+    wanted = "/" + race_path.strip("/")
+    got = urlparse(final_url).path.rstrip("/") or "/"
+    wanted = wanted.rstrip("/") or "/"
+    if got != wanted and not got.startswith(wanted + "/"):
+        raise RuntimeError(
+            f"ontheday.net redirected away from /{race_path.strip('/')}/ "
+            f"(got {urlparse(final_url).path}). "
+            "Use the exact path from the browser URL, including hyphens vs underscores "
+            "(e.g. 2026/eldo-1-8, not 2026/eldo_1_8)."
+        )
+
+
+def _get(url: str, *, race_path: str | None = None) -> BeautifulSoup:
     resp = requests.get(url, timeout=_TIMEOUT)
     resp.raise_for_status()
+    if race_path is not None:
+        _validate_race_page_url(race_path, resp.url)
     return BeautifulSoup(resp.text, "lxml")
 
 
@@ -417,8 +433,9 @@ def scrape_race(race_path: str, team_names_lower: set[str]) -> ScrapeOutcome:
     Handles both multi-stage events (e.g. Tour de Murrieta) and single-day
     races (e.g. CBR criteriums) where results links live on the main page.
     """
-    race_url = f"{BASE_URL}/{race_path.strip('/')}/"
-    race_soup = _get(race_url)
+    race_path = race_path.strip("/")
+    race_url = f"{BASE_URL}/{race_path}/"
+    race_soup = _get(race_url, race_path=race_path)
 
     stages = _discover_stages(race_soup, race_url)
     outcome = ScrapeOutcome()

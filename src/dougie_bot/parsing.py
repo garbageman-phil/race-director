@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-_RACE_PATH_PATTERN = re.compile(r"\b(20\d{2}/[a-z0-9_]+)\b", re.IGNORECASE)
+_RACE_PATH_PATTERN = re.compile(r"\b(20\d{2}/[a-z0-9_-]+)\b", re.IGNORECASE)
 _MENTION_PREFIX_RE = re.compile(r"^<@!?\d+>\s*")
 _BOT_PREFIX = "dougie-bot"
 
